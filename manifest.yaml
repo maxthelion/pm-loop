@@ -1,0 +1,48 @@
+# pm-loop install manifest.
+#
+# Describes where each canonical file lands in a target project when installed
+# by the meta hub (`meta install-pm-loop <project>`). Tools that consume this
+# manifest should refuse to overwrite a file if its hash differs from the
+# previously-installed version unless --force is passed.
+name: pm-loop
+version: 0.1.0
+description: >
+  Reusable PM workflow bundle: deterministic selector, pm-next-action skill,
+  pm-assistant agent role, capture-clarification / capture-feedback /
+  attention-summary / commit-roadmap-action / promote-ready-item-to-worktree
+  helpers, plus the working-through-a-roadmap process doc and the HTML
+  prototype guidelines.
+
+# Required directory in the target project.
+requires:
+  - docs/roadmap/
+
+files:
+  - source: scripts/next-roadmap-actions.sh
+    target: scripts/roadmap/next-roadmap-actions.sh
+    mode: "0755"
+  - source: scripts/capture-clarification.sh
+    target: scripts/roadmap/capture-clarification.sh
+    mode: "0755"
+  - source: scripts/capture-feedback.sh
+    target: scripts/roadmap/capture-feedback.sh
+    mode: "0755"
+  - source: scripts/attention-summary.sh
+    target: scripts/roadmap/attention-summary.sh
+    mode: "0755"
+  - source: scripts/commit-roadmap-action.sh
+    target: scripts/roadmap/commit-roadmap-action.sh
+    mode: "0755"
+  - source: scripts/promote-ready-item-to-worktree.sh
+    target: scripts/roadmap/promote-ready-item-to-worktree.sh
+    mode: "0755"
+
+  - source: claude/agents/pm-assistant.md
+    target: .claude/agents/pm-assistant.md
+  - source: claude/skills/pm-next-action/SKILL.md
+    target: .claude/skills/pm-next-action/SKILL.md
+
+  - source: docs/working-through-a-roadmap.md
+    target: docs/working-through-a-roadmap.md
+  - source: docs/html-prototype-guidelines.md
+    target: docs/html-prototype-guidelines.md
