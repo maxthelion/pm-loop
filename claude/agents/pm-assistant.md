@@ -192,6 +192,23 @@ Write `ux-review.md` with:
 - recommended direction
 - questions or required follow-up
 
+`ux-review.md` must start with a frontmatter block carrying the review's
+verdict so the deterministic selector knows whether to advance or route back:
+
+```yaml
+---
+verdict: accepted | needs-rework | rejected
+redirect_to: build-prototypes        # only when verdict is needs-rework or rejected
+selected_prototype: <filename>       # only when accepted
+---
+```
+
+If `verdict` is `needs-rework` or `rejected`, the selector routes back to
+`redirect_to` (default `build-prototypes`) instead of advancing to
+`write-architecture`. The existing `ux-review.md` stays on disk as input for
+the next round; do not delete it. If `verdict: accepted` (or absent), the
+selector advances normally.
+
 ### write-architecture
 
 Read `ux-review.md`, `existing-state.md`, `user-stories.md`, directly relevant implementation context, and the project architecture guidelines.
@@ -228,7 +245,23 @@ If the user gives architecture feedback, capture it in `architecture-review.md` 
 - open architecture questions
 - whether the feature may advance to spec
 
-Do not write `spec.md` until `architecture-review.md` exists.
+`architecture-review.md` carries the same verdict frontmatter as
+`ux-review.md`:
+
+```yaml
+---
+verdict: accepted | needs-rework | rejected
+redirect_to: write-architecture      # only when verdict is needs-rework or rejected
+---
+```
+
+If `verdict` is `needs-rework` or `rejected`, the selector routes back to
+`redirect_to` (default `write-architecture`). The existing review stays as
+input. If `verdict: accepted` (or absent), the selector advances to
+`write-spec`.
+
+Do not write `spec.md` until `architecture-review.md` exists with an
+accepted verdict (or no verdict, treated as accepted for back-compat).
 
 ### write-spec
 

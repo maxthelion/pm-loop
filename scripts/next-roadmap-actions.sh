@@ -132,6 +132,32 @@ roadmap_dirs() {
   } | awk 'NF && !seen[$0]++'
 }
 
+review_verdict_redirect() {
+  # If a review document carries `verdict: needs-rework` or `verdict: rejected`,
+  # echo the `redirect_to` target (or the supplied default) and return 0.
+  # Verdicts other than needs-rework/rejected (accepted, empty, missing) leave
+  # the selector free to advance on file-presence as before.
+  local file="$1"
+  local default_redirect="$2"
+  if [ ! -s "$file" ]; then
+    return 1
+  fi
+  local verdict
+  verdict="$(frontmatter_value "$file" "verdict" "")"
+  case "$verdict" in
+    needs-rework|rejected)
+      local redirect_to
+      redirect_to="$(frontmatter_value "$file" "redirect_to" "$default_redirect")"
+      if [ -z "$redirect_to" ]; then
+        redirect_to="$default_redirect"
+      fi
+      printf '%s\n' "$redirect_to"
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 classify_feature() {
   local dir="$1"
   local next_action=""
@@ -163,6 +189,24 @@ classify_feature() {
     next_action="blocked"
     reason="Status is \`$status\`, blocked_by is \`$blocked_by\`, or \`open-questions.md\` exists."
     output_hint="Answer the open questions or resolve the blocker before advancing this item."
+    printf '%s\t%s\t%s\n' "$next_action" "$reason" "$output_hint"
+    return
+  fi
+
+  # Review-document verdicts: if a review explicitly says "go back", route to
+  # the redirect target instead of advancing on file presence alone.
+  local redirect
+  if redirect="$(review_verdict_redirect "$dir/ux-review.md" "build-prototypes")"; then
+    next_action="$redirect"
+    reason="\`ux-review.md\` verdict is \`needs-rework\` or \`rejected\`; redirect_to=\`$redirect\`."
+    output_hint="Address the verdict in \`ux-review.md\`. The existing review stays as input; produce a fresh artifact at the redirect target."
+    printf '%s\t%s\t%s\n' "$next_action" "$reason" "$output_hint"
+    return
+  fi
+  if redirect="$(review_verdict_redirect "$dir/architecture-review.md" "write-architecture")"; then
+    next_action="$redirect"
+    reason="\`architecture-review.md\` verdict is \`needs-rework\` or \`rejected\`; redirect_to=\`$redirect\`."
+    output_hint="Address the verdict in \`architecture-review.md\`. The existing review stays as input; produce a fresh artifact at the redirect target."
     printf '%s\t%s\t%s\n' "$next_action" "$reason" "$output_hint"
     return
   fi
@@ -251,22 +295,24 @@ tmp="$OUT.tmp.$$"
   echo
   echo "## Selector"
   echo
-  echo "For each feature, deferred status wins first, then unresolved feedback, then blocked metadata or open questions; otherwise the first missing artifact wins:"
+  echo "For each feature, deferred status wins first, then unresolved feedback, then blocked metadata or open questions, then review-document verdicts requesting rework; otherwise the first missing artifact wins:"
   echo
   echo "1. \`status: deferred\` -> deferred"
   echo "2. unresolved \`feedback/*.md\` -> address-feedback"
   echo "3. \`status: blocked\`, non-empty \`blocked_by\`, or \`open-questions.md\` -> blocked"
-  echo "4. \`notes.md\` -> clarify-feature"
-  echo "5. \`user-stories.md\` -> draft-user-stories"
-  echo "6. \`existing-state.md\` -> inspect-existing-state"
-  echo "7. \`prototypes/*\` -> build-prototypes"
-  echo "8. \`ux-review.md\` -> review-prototypes"
-  echo "9. \`architecture.md\` -> write-architecture"
-  echo "10. \`architecture-review.md\` -> review-architecture"
-  echo "11. \`spec.md\` -> write-spec"
-  echo "12. \`plan.md\` -> write-plan"
-  echo "13. \`implementation-handoff.md\` -> write-implementation-handoff"
-  echo "14. all present -> ready-for-build-queue"
+  echo "4. \`ux-review.md\` with \`verdict: needs-rework\`/\`rejected\` -> \`redirect_to\` (default \`build-prototypes\`)"
+  echo "5. \`architecture-review.md\` with \`verdict: needs-rework\`/\`rejected\` -> \`redirect_to\` (default \`write-architecture\`)"
+  echo "6. \`notes.md\` -> clarify-feature"
+  echo "7. \`user-stories.md\` -> draft-user-stories"
+  echo "8. \`existing-state.md\` -> inspect-existing-state"
+  echo "9. \`prototypes/*\` -> build-prototypes"
+  echo "10. \`ux-review.md\` -> review-prototypes"
+  echo "11. \`architecture.md\` -> write-architecture"
+  echo "12. \`architecture-review.md\` -> review-architecture"
+  echo "13. \`spec.md\` -> write-spec"
+  echo "14. \`plan.md\` -> write-plan"
+  echo "15. \`implementation-handoff.md\` -> write-implementation-handoff"
+  echo "16. all present -> ready-for-build-queue"
   echo
   echo "## Next User Item"
   echo

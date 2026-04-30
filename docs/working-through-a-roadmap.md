@@ -111,6 +111,40 @@ handled_in:
 
 If the feedback cannot be applied without more user judgment, the PM assistant should create or update `open-questions.md`, mark the feature blocked, and then mark the feedback handled with `handled_in` pointing to the open questions. The point is not to make the PM assistant guess; it is to keep review comments auditable and routable.
 
+### Review Verdicts
+
+Review documents (`ux-review.md`, `architecture-review.md`) carry a verdict in
+their frontmatter so the deterministic selector knows whether to advance or
+route back to an earlier stage:
+
+```yaml
+---
+verdict: accepted | needs-rework | rejected
+redirect_to: build-prototypes        # only when needs-rework or rejected
+selected_prototype: <filename>        # only on ux-review.md when accepted
+---
+```
+
+How the selector reads it:
+
+- `accepted` (or no `verdict` field, for back-compat) → advance to the next
+  stage as if the review were simply present.
+- `needs-rework` → route back to `redirect_to` (defaults: `build-prototypes`
+  for `ux-review.md`, `write-architecture` for `architecture-review.md`).
+- `rejected` → same as `needs-rework`. The PM-assistant should also consider
+  whether to write `open-questions.md` rather than producing another round
+  in the same shape.
+
+The existing review document stays on disk as input for the next round —
+the rework agent reads it to know what was wrong. Do not delete previous
+reviews; the conversation about a feature is part of the feature directory.
+
+If the user wants to redirect *after* a review has been accepted (e.g. they
+read the spec next week and realise the prototype was wrong), they should
+use `scripts/roadmap/capture-feedback.sh` instead of editing the verdict.
+The selector's "unresolved feedback wins first" rule then routes the next
+agent pass through `address-feedback`.
+
 ### Status Values
 
 Use these `status` values consistently in feature `README.md` front matter:
