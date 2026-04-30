@@ -10,8 +10,8 @@ Drop this bundle into any repo and you get:
 
 - A **feature-directory schema** under `docs/roadmap/<feature-slug>/`
   (notes, user stories, existing-state, prototypes, ux-review, architecture,
-  architecture-review, spec, plan, implementation-handoff, plus a `feedback/`
-  inbox).
+  architecture-review, spec, plan, implementation-handoff, plus `feedback/`
+  and `concerns.md` review gates).
 - A **deterministic selector** (`next-roadmap-actions.sh`) that reads each
   feature directory and emits the likely next planning action by checking the
   first missing artifact, with deferred status / unresolved feedback /
@@ -37,7 +37,7 @@ build loop owns that.
   LLM, and only for one action per heartbeat.
 - **The feature directory is the inventory.** All artefacts and conversations
   about a feature stay together in one place: notes, prototypes, reviews,
-  feedback queue, spec, plan. Nothing is centralised.
+  feedback queue, concerns, spec, plan. Nothing is centralised.
 - **User input is captured as structured files, not chat history.**
   `capture-clarification.sh` and `capture-feedback.sh` are the only on-ramps;
   every PM follow-up starts from a file on disk.

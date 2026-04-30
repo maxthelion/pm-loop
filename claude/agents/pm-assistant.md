@@ -61,6 +61,7 @@ Typical artifacts:
 - `README.md` with front matter
 - `notes.md`
 - `feedback/*.md`
+- `concerns.md`
 - `open-questions.md`
 - `user-stories.md`
 - `existing-state.md`
@@ -146,6 +147,30 @@ Then update the feature `README.md` front matter:
 - keep `status` as `inventory` unless the item is actively blocked or explicitly deferred by the user
 - update `updated` to today's date
 
+If the stories can be drafted but important risks or unresolved boundaries remain, write `concerns.md` instead of only mentioning them in the final report:
+
+```markdown
+---
+status: open
+raised_by: pm-assistant
+raised_during: draft-user-stories
+created: <ISO timestamp>
+resolved_in: []
+---
+
+# <Feature> Concerns
+
+## Concerns
+
+1. <concern and why it matters>
+
+## Suggested Resolution Path
+
+- <where this should be resolved: existing-state, architecture, user question, etc.>
+```
+
+Return `DONE_WITH_CONCERNS` when `concerns.md` is created or updated. The selector will route the item to `review-concerns` in the user lane before PM work continues.
+
 If there is not enough information, write `open-questions.md`:
 
 ```markdown
@@ -182,13 +207,19 @@ Do not edit production code.
 
 ### review-prototypes
 
-Read the feature prototypes and `docs/html-prototype-guidelines.md`.
+Read the feature prototypes, `user-stories.md`, `existing-state.md`, and
+`docs/html-prototype-guidelines.md`. Treat this as an adversarial product
+review of the previous PM work: try to complete the user-story goals from the
+prototype artifacts, look for missing states and awkward flows, and prefer a
+`needs-rework` verdict over accepting a prototype that only works in the happy
+path.
 
 Write `ux-review.md` with:
 
 - what works
 - what fails
 - checklist results
+- user-story goal coverage
 - recommended direction
 - questions or required follow-up
 
@@ -236,13 +267,21 @@ Do not write production code. Do not turn this into an implementation plan.
 
 ### review-architecture
 
-This is a user action, not a PM-assistant action.
+Read `architecture.md`, `ux-review.md`, `existing-state.md`, `user-stories.md`,
+and directly relevant implementation context. Treat this as an adversarial
+architecture review of the previous PM work, not a continuation of the same
+recommendation. Check whether the proposed guardrails actually follow the code
+and project guidelines, whether the transient/persisted boundary is credible,
+and whether the design introduces broad rewrites, duplicated truth, or UI-only
+state that can affect playback.
 
-If the user gives architecture feedback, capture it in `architecture-review.md` with:
+Write `architecture-review.md` with:
 
 - approved guardrails
 - rejected or revised guardrails
 - open architecture questions
+- risks the architecture pass missed
+- recommendation for the user
 - whether the feature may advance to spec
 
 `architecture-review.md` carries the same verdict frontmatter as
@@ -259,6 +298,14 @@ If `verdict` is `needs-rework` or `rejected`, the selector routes back to
 `redirect_to` (default `write-architecture`). The existing review stays as
 input. If `verdict: accepted` (or absent), the selector advances to
 `write-spec`.
+
+Use `accepted` only when the architecture is coherent enough for a spec writer
+to rely on. Use `needs-rework` when the direction is plausible but needs another
+architecture pass. Use `rejected` when the recommendation conflicts with the
+project's architecture or the user stories. If the review exposes a product or
+architecture decision that should not be guessed, write `open-questions.md`,
+mark the feature blocked, and return `BLOCKED` instead of writing a pretend
+approval.
 
 Do not write `spec.md` until `architecture-review.md` exists with an
 accepted verdict (or no verdict, treated as accepted for back-compat).
@@ -292,6 +339,8 @@ Return one of:
 
 - `DONE — wrote <artifact path>`
 - `BLOCKED — wrote <open-questions path>`
-- `DONE_WITH_CONCERNS — wrote <artifact path>; concerns: <short list>`
+- `DONE_WITH_CONCERNS — wrote <artifact path> and <concerns path>; concerns: <short list>`
+
+Never return `DONE_WITH_CONCERNS` without writing or updating `concerns.md`. If the concern needs a user answer before further useful PM work can happen, return `BLOCKED` and write `open-questions.md` instead.
 
 Include changed file paths and the next expected roadmap action.

@@ -40,7 +40,8 @@ Process reference: `docs/working-through-a-roadmap.md`. Sub-agent contract: `.cl
    - Otherwise → continue to step 4.
 4. **Dispatch `pm-assistant`.** Use the `Agent` tool with `subagent_type: pm-assistant`. The brief must be self-contained: include the feature slug, action verb, reason from the selector, and the suggested-output guidance verbatim. Tell the agent to follow its own action contract in `.claude/agents/pm-assistant.md` and to return the standard report format (`DONE` / `BLOCKED` / `DONE_WITH_CONCERNS` plus changed paths).
 5. **Apply the result.**
-   - If `pm-assistant` reports `DONE` or `DONE_WITH_CONCERNS` and wrote files under `docs/roadmap/`, run `scripts/roadmap/commit-roadmap-action.sh`. The helper already filters pure `next-actions.md` churn so a no-op refresh does not produce a commit.
+   - If `pm-assistant` reports `DONE` and wrote files under `docs/roadmap/`, run `scripts/roadmap/commit-roadmap-action.sh`. The helper already filters pure `next-actions.md` churn so a no-op refresh does not produce a commit.
+   - If `pm-assistant` reports `DONE_WITH_CONCERNS`, confirm it wrote or updated `concerns.md`, then run `scripts/roadmap/commit-roadmap-action.sh`. The next selector run will surface the item under "Next User Item" as `review-concerns`.
    - If `pm-assistant` reports `BLOCKED`, the agent will have written `open-questions.md` and updated front matter. The commit helper still applies; the next selector run will surface the item under "Next User Item".
 6. **Refresh and surface attention.** Rerun `scripts/roadmap/next-roadmap-actions.sh` so the post-action state is reflected. Then run `scripts/roadmap/attention-summary.sh` and include its output in the final response.
 7. **Exit.** Do not chain into a second action. The next loop iteration evaluates from scratch.
@@ -60,12 +61,13 @@ The selector emits one of these verbs. Definitions and per-action contracts live
 | `write-implementation-handoff` | `implementation-handoff.md` | `pm-assistant` |
 | `write-spec` | `spec.md` | `pm-assistant` |
 | `write-plan` | `plan.md` | `pm-assistant` |
-| `review-prototypes` | (none — needs user review first) | **Skipped by this skill.** Capture user feedback with `capture-feedback.sh`; `address-feedback` may then write `ux-review.md`. |
-| `review-architecture` | (none — needs user review first) | **Skipped by this skill.** Capture user feedback with `capture-feedback.sh`; `address-feedback` may then write `architecture-review.md`. |
+| `review-prototypes` | `ux-review.md` | `pm-assistant` |
+| `review-architecture` | `architecture-review.md` | `pm-assistant` |
+| `review-concerns` | (none — needs user review first) | **Skipped by this skill.** User decides whether concerns become guardrails, questions, or resolved notes. |
 | `ready-for-build-queue` | (none — promotion is a user decision) | **Skipped by this skill.** Use `scripts/roadmap/promote-ready-item-to-worktree.sh <item-id>` when the user explicitly promotes it. |
 | `blocked` | (none) | **Skipped by this skill.** |
 
-If the selector emits a verb that is not `pm-assistant`'s (`clarify-feature`, `blocked`, `review-architecture`, `ready-for-build-queue`), this skill exits without dispatching. Those need a human.
+If the selector emits a verb that is not `pm-assistant`'s (`clarify-feature`, `blocked`, `review-concerns`, `ready-for-build-queue`), this skill exits without dispatching. Those need a human.
 
 ## Loop boundary — do not cross
 

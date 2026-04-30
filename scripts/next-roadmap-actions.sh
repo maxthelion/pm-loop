@@ -50,6 +50,22 @@ has_unhandled_feedback() {
   return 1
 }
 
+has_open_concerns() {
+  local file="$1/concerns.md"
+  [ -s "$file" ] || return 1
+
+  local status
+  status="$(frontmatter_value "$file" "status" "open")"
+  case "$status" in
+    resolved|archived)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
 frontmatter_value() {
   local file="$1"
   local key="$2"
@@ -185,6 +201,14 @@ classify_feature() {
     return
   fi
 
+  if has_open_concerns "$dir"; then
+    next_action="review-concerns"
+    reason="\`concerns.md\` exists and is not resolved or archived."
+    output_hint="Review the concerns, decide whether they are accepted guardrails, open questions, or non-blocking notes, then update \`concerns.md\` before PM work continues."
+    printf '%s\t%s\t%s\n' "$next_action" "$reason" "$output_hint"
+    return
+  fi
+
   if [ "$status" = "blocked" ] || { [ -n "$blocked_by" ] && [ "$blocked_by" != "[]" ]; } || has_content_file "$dir/open-questions.md"; then
     next_action="blocked"
     reason="Status is \`$status\`, blocked_by is \`$blocked_by\`, or \`open-questions.md\` exists."
@@ -264,7 +288,7 @@ action_agent() {
   local action="$1"
 
   case "$action" in
-    clarify-feature|blocked|review-prototypes|review-architecture)
+    clarify-feature|blocked|review-concerns)
       printf '%s\n' "user"
       ;;
     deferred)
@@ -291,28 +315,29 @@ tmp="$OUT.tmp.$$"
   echo
   echo "Each roadmap item has front matter in its feature \`README.md\`: \`id\`, \`title\`, \`status\`, \`priority\`, \`blocked_by\`, \`stage\`, \`owner\`, and \`updated\`."
   echo
-  echo "Planning actions after \`clarify-feature\` are intended for the \`pm-assistant\` role, except \`review-prototypes\` and \`review-architecture\`, which require user judgment. \`clarify-feature\`, \`blocked\`, \`review-prototypes\`, and \`review-architecture\` require user input. \`address-feedback\` is a PM-assistant action."
+  echo "Planning actions after \`clarify-feature\` are intended for the \`pm-assistant\` role, except \`review-concerns\`, which requires user judgment. \`clarify-feature\`, \`blocked\`, and \`review-concerns\` require user input. \`review-prototypes\`, \`review-architecture\`, and \`address-feedback\` are PM-assistant actions."
   echo
   echo "## Selector"
   echo
-  echo "For each feature, deferred status wins first, then unresolved feedback, then blocked metadata or open questions, then review-document verdicts requesting rework; otherwise the first missing artifact wins:"
+  echo "For each feature, deferred status wins first, then unresolved feedback, then open concerns, then blocked metadata or open questions, then review-document verdicts requesting rework; otherwise the first missing artifact wins:"
   echo
   echo "1. \`status: deferred\` -> deferred"
   echo "2. unresolved \`feedback/*.md\` -> address-feedback"
-  echo "3. \`status: blocked\`, non-empty \`blocked_by\`, or \`open-questions.md\` -> blocked"
-  echo "4. \`ux-review.md\` with \`verdict: needs-rework\`/\`rejected\` -> \`redirect_to\` (default \`build-prototypes\`)"
-  echo "5. \`architecture-review.md\` with \`verdict: needs-rework\`/\`rejected\` -> \`redirect_to\` (default \`write-architecture\`)"
-  echo "6. \`notes.md\` -> clarify-feature"
-  echo "7. \`user-stories.md\` -> draft-user-stories"
-  echo "8. \`existing-state.md\` -> inspect-existing-state"
-  echo "9. \`prototypes/*\` -> build-prototypes"
-  echo "10. \`ux-review.md\` -> review-prototypes"
-  echo "11. \`architecture.md\` -> write-architecture"
-  echo "12. \`architecture-review.md\` -> review-architecture"
-  echo "13. \`spec.md\` -> write-spec"
-  echo "14. \`plan.md\` -> write-plan"
-  echo "15. \`implementation-handoff.md\` -> write-implementation-handoff"
-  echo "16. all present -> ready-for-build-queue"
+  echo "3. open \`concerns.md\` -> review-concerns"
+  echo "4. \`status: blocked\`, non-empty \`blocked_by\`, or \`open-questions.md\` -> blocked"
+  echo "5. \`ux-review.md\` with \`verdict: needs-rework\`/\`rejected\` -> \`redirect_to\` (default \`build-prototypes\`)"
+  echo "6. \`architecture-review.md\` with \`verdict: needs-rework\`/\`rejected\` -> \`redirect_to\` (default \`write-architecture\`)"
+  echo "7. \`notes.md\` -> clarify-feature"
+  echo "8. \`user-stories.md\` -> draft-user-stories"
+  echo "9. \`existing-state.md\` -> inspect-existing-state"
+  echo "10. \`prototypes/*\` -> build-prototypes"
+  echo "11. \`ux-review.md\` -> review-prototypes"
+  echo "12. \`architecture.md\` -> write-architecture"
+  echo "13. \`architecture-review.md\` -> review-architecture"
+  echo "14. \`spec.md\` -> write-spec"
+  echo "15. \`plan.md\` -> write-plan"
+  echo "16. \`implementation-handoff.md\` -> write-implementation-handoff"
+  echo "17. all present -> ready-for-build-queue"
   echo
   echo "## Next User Item"
   echo
