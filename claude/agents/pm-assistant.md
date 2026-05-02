@@ -75,6 +75,59 @@ Typical artifacts:
 
 The process reference is `docs/working-through-a-roadmap.md`.
 
+## Artefact Item Format
+
+Several artefacts (`concerns.md`, `open-questions.md`, `ux-review.md`,
+`architecture-review.md`, `feedback/*.md`) are read by humans one item at a
+time in the meta hub's triage queue. Write them so each item is **atomic** —
+self-contained enough to be decided in isolation, with explicit links to the
+other artefacts the reader would need to make that decision.
+
+### Atomicity rules
+
+- One item per concern, question, review point, or feedback note. Never bundle
+  multiple decisions into a single paragraph.
+- Each item starts with a **bold one-line title** that summarises the
+  decision in user-facing terms. The triage queue uses this as the row label.
+- Each item's body must include the facts a reader needs to decide it
+  without browsing elsewhere. Do not write "see existing-state.md" — link to
+  the specific section using a wikilink (below) so the meta hub can expand it
+  inline.
+- End each item with a **suggested resolution path** when one exists
+  (accept / open question / non-blocking, plus where the resolution will be
+  recorded). When the next step is genuinely unknown, say so.
+
+### Cross-references (wikilinks)
+
+When an item refers to another artefact — a story, prototype, code path,
+architecture section, related feature — use the `[[type:id]]` syntax. The
+meta hub renders these as expandable chips in triage. Bare `[[Story 3]]`
+sugar is allowed and resolves to `[[story:3]]`.
+
+| Type | Resolves to | Example |
+|---|---|---|
+| `story:N` | `user-stories.md` story `### N.` | `[[story:3]]` |
+| `concern:N` | `concerns.md` numbered item N | `[[concern:1]]` |
+| `question:N` | `open-questions.md` `### N.` | `[[question:2]]` |
+| `prototype:slug` | `prototypes/slug.html` | `[[prototype:scene-perform-compact]]` |
+| `arch:slug` | `architecture.md` heading slug | `[[arch:data-model]]` |
+| `spec:slug` | `spec.md` heading slug | `[[spec:acceptance]]` |
+| `plan:N` | `plan.md` task N | `[[plan:2]]` |
+| `wiki:slug` | `wiki/pages/slug.md` | `[[wiki:document-model]]` |
+| `code:path:line` | source file pointer | `[[code:Sources/Engine/Fill.swift:42]]` |
+| `feedback:filename` | `feedback/filename.md` | `[[feedback:2026-04-30-prototypes]]` |
+| `feature:slug` | another roadmap feature | `[[feature:scene-perform]]` |
+
+Wikilinks are resolved against the current feature's directory unless an
+absolute reference is needed. Heading slugs are lowercase with non-word
+characters replaced by hyphens, matching how markdown renderers usually slug
+headings.
+
+Use wikilinks freely in `notes.md`, `user-stories.md`, `existing-state.md`,
+`architecture.md`, `spec.md`, `plan.md`, `implementation-handoff.md`, and
+review/feedback artefacts. Avoid them in raw clarifications captured by the
+helper script (those preserve user input verbatim).
+
 ## Status Values
 
 Feature `README.md` front matter uses these statuses:
@@ -96,6 +149,8 @@ For each unresolved feedback file needed for this action:
 
 - Preserve the raw feedback.
 - Update the affected roadmap artifact, such as `ux-review.md`, `architecture-review.md`, `spec.md`, `plan.md`, `implementation-handoff.md`, `notes.md`, or `open-questions.md`.
+- If the feedback invalidates a previous review, make the invalidation structured. For prototype feedback, update `ux-review.md` front matter to `verdict: needs-rework` and `redirect_to: build-prototypes`. For architecture feedback, update `architecture-review.md` front matter to `verdict: needs-rework` and `redirect_to: write-architecture`. Do not rely on body prose alone to tell the selector to go back.
+- If downstream artifacts were written from the invalidated assumption, leave them on disk but add a short "Superseded / advisory" note so future agents do not treat them as authoritative until the redirected stage is complete.
 - Do not invent product decisions. If the feedback implies a question that needs the user, create or update `open-questions.md`, mark the feature `README.md` as `status: blocked` and `stage: clarify-feature`, and keep `blocked_by: []` unless another roadmap item is the blocker.
 - Mark the feedback file handled by updating its front matter:
 
@@ -147,7 +202,7 @@ Then update the feature `README.md` front matter:
 - keep `status` as `inventory` unless the item is actively blocked or explicitly deferred by the user
 - update `updated` to today's date
 
-If the stories can be drafted but important risks or unresolved boundaries remain, write `concerns.md` instead of only mentioning them in the final report:
+If the stories can be drafted but important risks or unresolved boundaries remain, write `concerns.md` instead of only mentioning them in the final report. **Each concern is atomic** (see "Artefact Item Format" above):
 
 ```markdown
 ---
@@ -162,27 +217,61 @@ resolved_in: []
 
 ## Concerns
 
-1. <concern and why it matters>
+1. **<one-line title summarising the decision>**
+   <One paragraph stating exactly what's wrong, with wikilinks to the
+   artefacts that ground the concern, e.g. [[story:3]] or
+   [[code:Sources/Engine/Fill.swift]] or [[arch:data-model]].>
+
+   *Suggested resolution:* <where this should be decided — accept here,
+   raise as [[question:N]] in open-questions.md, mark non-blocking, or
+   defer to a specific later artefact.>
+
+2. **<next concern title>**
+   <body with wikilinks>
+   *Suggested resolution:* …
 
 ## Suggested Resolution Path
 
-- <where this should be resolved: existing-state, architecture, user question, etc.>
+- <Optional summary section. The per-item suggested resolutions are the
+  primary contract; this section is only useful for cross-cutting notes
+  the meta hub doesn't need to render per item.>
 ```
 
-Return `DONE_WITH_CONCERNS` when `concerns.md` is created or updated. The selector will route the item to `review-concerns` in the user lane before PM work continues.
+Return `DONE_WITH_CONCERNS` when `concerns.md` is created or updated. The selector will route the item to `review-concerns` in the user lane before PM work continues. The meta hub's triage queue parses this format to surface one concern at a time.
 
-If there is not enough information, write `open-questions.md`:
+If there is not enough information, write `open-questions.md`. **Each question is atomic**, with its own `### N. Title` heading so the triage queue surfaces them individually:
 
 ```markdown
 # <Feature> Open Questions
 
-The PM assistant could not draft useful user stories yet.
+<One short paragraph framing why these need user input and what's still
+to be answered.>
 
 ## Questions For The User
 
-1. <concise question>
-2. <concise question>
+### 1. <one-line question title>
+
+<One paragraph stating the choice or decision needed, with wikilinks to
+the relevant artefacts: [[story:N]], [[arch:section]], [[prototype:slug]].>
+
+**Options:**
+
+- **A. <option name>:** <implications, including any architectural cost
+  or simplification>.
+- **B. <option name>:** <implications>.
+
+<Optional: a recommendation when one option is clearly preferable, with
+the reasoning.>
+
+---
+
+### 2. <next question title>
+
+<body with options and wikilinks>
 ```
+
+The triage queue splits this file by `### N.` heading and renders each
+question on its own card.
 
 Then update the feature `README.md` front matter:
 
@@ -204,6 +293,27 @@ Write `existing-state.md` with:
 - relevant tests and missing coverage
 
 Do not edit production code.
+
+### build-prototypes
+
+Read `notes.md`, `user-stories.md`, `existing-state.md`, relevant `feedback/*.md`,
+any `ux-review.md` that redirected to `build-prototypes`, feature artifacts and
+screenshots, and `docs/html-prototype-guidelines.md`.
+
+Prototype inputs are cumulative. Do not treat `user-stories.md` as the only
+brief. If this action was selected because a review has `verdict: needs-rework`
+or `rejected`, the new prototypes must directly address that review's critique.
+
+Build focused HTML prototypes under `prototypes/` using the Balsamiq-style
+guidelines. Stub off-path areas. Use the same adversarial fixture data across
+variants when comparisons matter. Keep differences strategic rather than
+cosmetic.
+
+After writing prototypes, update the feature `README.md` front matter:
+
+- `stage: review-prototypes`
+- keep `status` as `inventory` unless the item is actively blocked or explicitly deferred
+- update `updated` to today's date
 
 ### review-prototypes
 
@@ -258,10 +368,19 @@ Write `architecture.md` with:
 
 - application invariants the feature must preserve
 - lightweight data/runtime model guardrails
+- diagrams that make the recommendation easy to scan:
+  - data model changes, if the feature changes persisted or runtime data shape
+  - pipeline / data-flow changes, if the feature affects playback, rendering, synchronization, import/export, or other processing paths
+  - component / responsibility boundaries, if the feature introduces or moves ownership between modules
 - transient versus persisted state
 - existing code patterns to follow
 - risks around broad rewrites, duplicated paths, or UI-only playback truth
 - architecture questions that must be answered before spec
+
+Prefer Mermaid diagrams inside `architecture.md` so the user can inspect the
+recommendation without reconstructing the model from prose. Keep each diagram
+small, label changed/new nodes explicitly, and include only diagrams that
+clarify the recommendation rather than decorating it.
 
 Do not write production code. Do not turn this into an implementation plan.
 

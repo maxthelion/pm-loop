@@ -34,7 +34,7 @@ Process reference: `docs/working-through-a-roadmap.md`. Sub-agent contract: `.cl
 ## What this skill does
 
 1. **Refresh the selector.** Run `scripts/roadmap/next-roadmap-actions.sh`. This rewrites `docs/roadmap/next-actions.md` against current state.
-2. **Read `docs/roadmap/next-actions.md`.** Locate the `## Next Agent Item` section and capture: item id, feature title, slug, action verb, reason, suggested output.
+2. **Read `docs/roadmap/next-actions.md`.** Locate the `## Next Agent Item` section and capture: item id, feature title, slug, action verb, reason, suggested output. The selector ranks unresolved user feedback and review rework ahead of ordinary artifact creation, even when the affected item appears later in backlog order.
 3. **Decide whether to act.**
    - If the section says "No roadmap items currently have an autonomous PM-assistant action" → run `scripts/roadmap/attention-summary.sh`, report what is blocking, exit. Do **not** commit.
    - Otherwise → continue to step 4.
@@ -56,7 +56,7 @@ The selector emits one of these verbs. Definitions and per-action contracts live
 | `address-feedback` | affected roadmap artifact plus handled `feedback/*.md` front matter | `pm-assistant` |
 | `draft-user-stories` | `user-stories.md` or `open-questions.md` | `pm-assistant` |
 | `inspect-existing-state` | `existing-state.md` | `pm-assistant` |
-| `build-prototypes` | `prototypes/*` | `pm-assistant` (HTML wireframes only) |
+| `build-prototypes` | `prototypes/*` | `pm-assistant` (HTML wireframes only; must read notes, stories, existing-state, feedback, and any redirecting UX review) |
 | `write-architecture` | `architecture.md` | `pm-assistant` |
 | `write-implementation-handoff` | `implementation-handoff.md` | `pm-assistant` |
 | `write-spec` | `spec.md` | `pm-assistant` |

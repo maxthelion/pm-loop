@@ -223,7 +223,7 @@ classify_feature() {
   if redirect="$(review_verdict_redirect "$dir/ux-review.md" "build-prototypes")"; then
     next_action="$redirect"
     reason="\`ux-review.md\` verdict is \`needs-rework\` or \`rejected\`; redirect_to=\`$redirect\`."
-    output_hint="Address the verdict in \`ux-review.md\`. The existing review stays as input; produce a fresh artifact at the redirect target."
+    output_hint="Address the verdict in \`ux-review.md\`. Read notes, user stories, existing-state, feedback, and the review critique; produce a fresh artifact at the redirect target."
     printf '%s\t%s\t%s\n' "$next_action" "$reason" "$output_hint"
     return
   fi
@@ -250,7 +250,7 @@ classify_feature() {
   elif ! has_prototype "$dir"; then
     next_action="build-prototypes"
     reason="Existing-state report exists, but no prototype artifact was found in \`prototypes/\`."
-    output_hint="Create focused Balsamiq-style HTML prototypes under this feature directory."
+    output_hint="Create focused Balsamiq-style HTML prototypes from notes, user stories, existing-state, feedback, screenshots/artifacts, and prototype guidelines."
   elif ! has_content_file "$dir/ux-review.md"; then
     next_action="review-prototypes"
     reason="Prototype artifacts exist, but \`ux-review.md\` is missing."
@@ -303,6 +303,32 @@ action_agent() {
   esac
 }
 
+agent_action_rank() {
+  local action="$1"
+  local reason="$2"
+
+  case "$action" in
+    address-feedback)
+      printf '%s\n' 10
+      return
+      ;;
+  esac
+
+  if [[ "$reason" == *"verdict is"* ]]; then
+    printf '%s\n' 20
+    return
+  fi
+
+  case "$action" in
+    review-prototypes|review-architecture)
+      printf '%s\n' 30
+      ;;
+    *)
+      printf '%s\n' 50
+      ;;
+  esac
+}
+
 tmp="$OUT.tmp.$$"
 {
   echo "# Roadmap Next Actions"
@@ -315,7 +341,7 @@ tmp="$OUT.tmp.$$"
   echo
   echo "Each roadmap item has front matter in its feature \`README.md\`: \`id\`, \`title\`, \`status\`, \`priority\`, \`blocked_by\`, \`stage\`, \`owner\`, and \`updated\`."
   echo
-  echo "Planning actions after \`clarify-feature\` are intended for the \`pm-assistant\` role, except \`review-concerns\`, which requires user judgment. \`clarify-feature\`, \`blocked\`, and \`review-concerns\` require user input. \`review-prototypes\`, \`review-architecture\`, and \`address-feedback\` are PM-assistant actions."
+  echo "Planning actions after \`clarify-feature\` are intended for the \`pm-assistant\` role, except \`review-concerns\`, which requires user judgment. \`clarify-feature\`, \`blocked\`, and \`review-concerns\` require user input. \`review-prototypes\`, \`review-architecture\`, and \`address-feedback\` are PM-assistant actions. The global \"Next Agent Item\" prioritises unresolved feedback and review rework before ordinary artifact creation."
   echo
   echo "## Selector"
   echo
@@ -381,19 +407,30 @@ tmp="$OUT.tmp.$$"
   echo "## Next Agent Item"
   echo
 
+  best_agent_line=""
+  best_agent_rank=999
   while IFS=$'\t' read -r action agent id title slug status priority blocked_by reason hint; do
-    if [ "$agent_written" -eq 0 ] && [ "$agent" = "pm-assistant" ]; then
-      echo "- **Item:** $id"
-      echo "- **Feature:** $title"
-      echo "- **Priority:** \`$priority\`"
-      echo "- **Status:** \`$status\`"
-      echo "- **Action:** \`$action\`"
-      echo "- **Role:** \`$agent\`"
-      echo "- **Why:** $reason"
-      echo "- **Output:** $hint"
-      agent_written=1
+    if [ "$agent" = "pm-assistant" ]; then
+      rank="$(agent_action_rank "$action" "$reason")"
+      if [ "$rank" -lt "$best_agent_rank" ]; then
+        best_agent_rank="$rank"
+        best_agent_line="$action"$'\t'"$agent"$'\t'"$id"$'\t'"$title"$'\t'"$slug"$'\t'"$status"$'\t'"$priority"$'\t'"$blocked_by"$'\t'"$reason"$'\t'"$hint"
+      fi
     fi
   done < "$rows_file"
+
+  if [ -n "$best_agent_line" ]; then
+    IFS=$'\t' read -r action agent id title slug status priority blocked_by reason hint <<< "$best_agent_line"
+    echo "- **Item:** $id"
+    echo "- **Feature:** $title"
+    echo "- **Priority:** \`$priority\`"
+    echo "- **Status:** \`$status\`"
+    echo "- **Action:** \`$action\`"
+    echo "- **Role:** \`$agent\`"
+    echo "- **Why:** $reason"
+    echo "- **Output:** $hint"
+    agent_written=1
+  fi
 
   if [ "$agent_written" -eq 0 ]; then
     echo "- No roadmap items currently have an autonomous PM-assistant action."
