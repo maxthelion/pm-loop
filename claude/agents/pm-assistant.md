@@ -324,15 +324,6 @@ prototype artifacts, look for missing states and awkward flows, and prefer a
 `needs-rework` verdict over accepting a prototype that only works in the happy
 path.
 
-Write `ux-review.md` with:
-
-- what works
-- what fails
-- checklist results
-- user-story goal coverage
-- recommended direction
-- questions or required follow-up
-
 `ux-review.md` must start with a frontmatter block carrying the review's
 verdict so the deterministic selector knows whether to advance or route back:
 
@@ -344,11 +335,43 @@ selected_prototype: <filename>       # only when accepted
 ---
 ```
 
+The body uses **atomic findings** so the meta hub's triage queue can split
+them and so a `needs-rework` rebuild can address each one independently:
+
+```markdown
+# <Feature> UX Review
+
+<One short paragraph framing the review and naming the chosen direction
+when the verdict is `accepted`. Reference user stories with [[story:N]] and
+the prototype variants with [[prototype:slug]].>
+
+## Findings
+
+### 1. <one-line title naming the issue or strength>
+
+<One paragraph stating the specific finding. Wikilink the prototype and
+user-story it relates to: "[[prototype:scene-perform-compact]] does not
+satisfy [[story:3]] because…". Be concrete about the offending
+interaction.>
+
+**Severity:** blocker | concern | nit
+**Suggested resolution:** <accept as-is, address in rebuild, defer to
+spec, or open as [[question:N]] for the user.>
+
+---
+
+### 2. <next finding title>
+
+<body with wikilinks>
+**Severity:** …
+**Suggested resolution:** …
+```
+
 If `verdict` is `needs-rework` or `rejected`, the selector routes back to
 `redirect_to` (default `build-prototypes`) instead of advancing to
 `write-architecture`. The existing `ux-review.md` stays on disk as input for
-the next round; do not delete it. If `verdict: accepted` (or absent), the
-selector advances normally.
+the next round; the rebuild reads each `Finding N` to know what to fix. Do
+not delete it. If `verdict: accepted` (or absent), the selector advances.
 
 ### write-architecture
 
@@ -394,15 +417,6 @@ and project guidelines, whether the transient/persisted boundary is credible,
 and whether the design introduces broad rewrites, duplicated truth, or UI-only
 state that can affect playback.
 
-Write `architecture-review.md` with:
-
-- approved guardrails
-- rejected or revised guardrails
-- open architecture questions
-- risks the architecture pass missed
-- recommendation for the user
-- whether the feature may advance to spec
-
 `architecture-review.md` carries the same verdict frontmatter as
 `ux-review.md`:
 
@@ -413,10 +427,44 @@ redirect_to: write-architecture      # only when verdict is needs-rework or reje
 ---
 ```
 
+The body uses **atomic findings** so the triage queue can split them and so
+a `needs-rework` rebuild can address each guardrail individually:
+
+```markdown
+# <Feature> Architecture Review
+
+<One short paragraph naming whether the architecture is accepted, what
+needs rework, and the recommendation. Reference [[arch:section]] for
+specific guardrails and [[code:path]] for existing patterns the design
+should or should not follow.>
+
+## Findings
+
+### 1. <one-line title naming the guardrail or risk>
+
+<One paragraph stating exactly what's accepted, rejected, or open. Link
+the relevant architecture section with [[arch:slug]], the wiki invariants
+with [[wiki:slug]], and the existing code patterns with [[code:path]] so
+the meta hub renders each cross-reference inline.>
+
+**Decision:** approved | revise | rejected | open-question
+**Suggested resolution:** <accept as guardrail, revise [[arch:slug]] to
+<change>, raise [[question:N]] for the user, or defer to a separate
+architecture pass.>
+
+---
+
+### 2. <next finding title>
+
+<body with wikilinks>
+**Decision:** …
+**Suggested resolution:** …
+```
+
 If `verdict` is `needs-rework` or `rejected`, the selector routes back to
 `redirect_to` (default `write-architecture`). The existing review stays as
-input. If `verdict: accepted` (or absent), the selector advances to
-`write-spec`.
+input — the rewrite reads each `Finding N` to know what to address. If
+`verdict: accepted` (or absent), the selector advances to `write-spec`.
 
 Use `accepted` only when the architecture is coherent enough for a spec writer
 to rely on. Use `needs-rework` when the direction is plausible but needs another
